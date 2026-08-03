@@ -1,0 +1,48 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import WorkCard from "../components/WorkCard.astro";
+import Counter from "../components/Counter.jsx";
+import { getCollection } from "astro:content";
+
+const works = (await getCollection("works")).sort((a, b) => a.data.order - b.data.order);
+const skills = (await getCollection("skills")).sort((a, b) => a.data.order - b.data.order);
+---
+
+<BaseLayout pageTitle="Home">
+  <section>
+    <h1>Your Name</h1>
+    <p>Short intro goes here.</p>
+  </section>
+
+  <section>
+    <h2>Skills</h2>
+    <ul>
+      {skills.map((skill) => <li>{skill.data.name}</li>)}
+    </ul>
+  </section>
+
+  <section>
+    <h2>Works</h2>
+    <div class="works-grid">
+      {works.map((work) => <WorkCard work={work} />)}
+    </div>
+  </section>
+
+  <section>
+    <!--
+      client:load hydrates this immediately on page load.
+      Other options: client:visible (hydrate when scrolled into view —
+      better for anything below the fold), client:idle (when the browser
+      is free). Pick the loosest one that still feels responsive.
+    -->
+    <Counter client:load />
+  </section>
+</BaseLayout>
+
+<style>
+  .works-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 2rem;
+  }
+</style>

@@ -1,0 +1,19 @@
+---
+import { getCollection, render } from "astro:content";
+import WorkLayout from "../../layouts/WorkLayout.astro";
+
+export async function getStaticPaths() {
+  const works = await getCollection("works");
+  return works.map((work) => ({
+    params: { slug: work.id },
+    props: { work },
+  }));
+}
+
+const { work } = Astro.props;
+const { Content } = await render(work); // renders the actual markdown body
+---
+
+<WorkLayout title={work.data.title} thumbnail={work.data.thumbnail}>
+  <Content />
+</WorkLayout>
