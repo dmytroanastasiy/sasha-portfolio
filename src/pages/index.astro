@@ -1,48 +1,214 @@
 ---
+import type { ImageMetadata } from "astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import WorkCard from "../components/WorkCard.astro";
+import About from "../components/About.astro";
+import Works from "../components/Works.astro";
 import Counter from "../components/Counter.jsx";
 import { getCollection } from "astro:content";
+
+// Dynamically import all images from src/assets
+const globImages = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/*.{jpeg,jpg,png,gif,webp}",
+  { eager: true }
+);
+
+const heroImageUrls = Object.values(globImages).map((img) => img.default.src);
 
 const works = (await getCollection("works")).sort((a, b) => a.data.order - b.data.order);
 const skills = (await getCollection("skills")).sort((a, b) => a.data.order - b.data.order);
 ---
 
 <BaseLayout pageTitle="Home">
-  <section>
-    <h1>Your Name</h1>
-    <p>Short intro goes here.</p>
+  <!-- Invisible SVG filter -->
+  <svg class="liquid-svg-filter">
+    <defs>
+      <filter id="liquid-distortion">
+        <feTurbulence
+          id="turbulence"
+          type="fractalNoise"
+          baseFrequency="0.01 0.02"
+          numOctaves="2"
+          result="noise"
+        ></feTurbulence>
+        <feDisplacementMap
+          in="SourceGraphic"
+          in2="noise"
+          scale="3"
+          xChannelSelector="R"
+          yChannelSelector="G"
+        ></feDisplacementMap>
+      </filter>
+    </defs>
+  </svg>
+
+  <section class="hero" id="hero-section" data-images={JSON.stringify(heroImageUrls)}>
+    <h1 class="hero-title" id="liquid-title">portfolio</h1>
   </section>
 
-  <section>
-    <h2>Skills</h2>
-    <ul>
-      {skills.map((skill) => <li>{skill.data.name}</li>)}
-    </ul>
-  </section>
-
-  <section>
-    <h2>Works</h2>
-    <div class="works-grid">
-      {works.map((work) => <WorkCard work={work} />)}
-    </div>
-  </section>
-
-  <section>
-    <!--
-      client:load hydrates this immediately on page load.
-      Other options: client:visible (hydrate when scrolled into view —
-      better for anything below the fold), client:idle (when the browser
-      is free). Pick the loosest one that still feels responsive.
-    -->
-    <Counter client:load />
-  </section>
+  <About />
+  <Works />
 </BaseLayout>
 
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // Liquid title animation logic
+    const title = document.getElementById("liquid-title");
+    const turbulence = document.getElementById("turbulence");
+    let step = 0;
+
+    function animateLiquid() {
+      step += 0.006;
+      const x = 50 + Math.sin(step) * 40;
+      const y = 50 + Math.cos(step * 0.7) * 40;
+
+      if (title) {
+        title.style.setProperty("--x", `${x}%`);
+        title.style.setProperty("--y", `${y}%`);
+      }
+
+      const freqX = 0.005 + Math.sin(step * 0.5) * 0.003;
+      const freqY = 0.01 + Math.cos(step * 0.3) * 0.004;
+
+      if (turbulence) {
+        turbulence.setAttribute("baseFrequency", `${freqX} ${freqY}`);
+      }
+
+      requestAnimationFrame(animateLiquid);
+    }
+    animateLiquid();
+
+    // Cursor image trail interaction
+    const hero = document.getElementById("hero-section");
+    if (!hero) return;
+
+    const rawImages = hero.dataset.images;
+    const images: string[] = rawImages ? JSON.parse(rawImages) : [];
+    if (images.length === 0) return;
+
+    let lastX = 0;
+    let lastY = 0;
+    const distanceThreshold = 85; // Pixels moved before spawning next image
+
+    hero.addEventListener("mousemove", (e) => {
+      const x = e.clientX;
+      const y = e.clientY;
+
+      const dist = Math.hypot(x - lastX, y - lastY);
+
+      if (dist > distanceThreshold) {
+        lastX = x;
+        lastY = y;
+        spawnTrailImage(x, y);
+      }
+    });
+
+    function spawnTrailImage(x: number, y: number) {
+      const randomSrc = images[Math.floor(Math.random() * images.length)];
+      const img = document.createElement("img");
+
+      // Random subtle rotation (-12deg to 12deg) for an artistic look
+      const rotation = (Math.random() - 0.5) * 24;
+
+      img.src = randomSrc;
+      img.className = "hero-trail-img";
+      img.style.left = `${x}px`;
+      img.style.top = `${y}px`;
+      img.style.setProperty("--rot", `${rotation}deg`);
+
+      document.body.appendChild(img);
+
+      // Trigger appearance frame
+      requestAnimationFrame(() => {
+        img.classList.add("visible");
+      });
+
+      // Start fade out so total lifecycle is exactly 2000ms (2s)
+      setTimeout(() => {
+        img.classList.remove("visible");
+        img.classList.add("fade-out");
+
+        // Remove element from DOM after transition finishes
+        setTimeout(() => {
+          img.remove();
+        }, 400);
+      }, 400);
+    }
+  });
+</script>
+
 <style>
-  .works-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 2rem;
+  .liquid-svg-filter {
+    position: absolute;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .hero {
+    height: 70dvh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    background-color: #0f0f0f;
+    margin-top: -0.1rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-title {
+    color: #fff;
+    font-family: "Bodoni 72", "Bodoni MT", Didot, serif;
+    font-style: italic;
+    font-weight: 200;
+    text-align: center;
+    margin: 0;
+    margin-bottom: 1.5rem;
+    font-size: clamp(3rem, 10vw, 12.5rem);
+    letter-spacing: clamp(0.1em, 4vw, 3em);
+    padding-left: 1rem;
+    z-index: 9999;
+    background: radial-gradient(
+      circle at var(--x, 50%) var(--y, 50%),
+      #ffffff 0%,
+      #d4d4d4 25%,
+      #262626 55%,
+      #a3a3a3 75%,
+      #171717 100%
+    );
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: url(#liquid-distortion);
+    will-change: filter;
+  }
+
+  /* Global styles for dynamically injected trail images */
+  :global(.hero-trail-img) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 120px;
+    height: auto;
+    object-fit: contain;
+    pointer-events: none;
+    z-index: 1000;
+    transform: translate(-50%, -50%) scale(0.7) rotate(var(--rot, 0deg));
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+    border-radius: 4px;
+  }
+
+  :global(.hero-trail-img.visible) {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(var(--rot, 0deg));
+  }
+
+  :global(.hero-trail-img.fade-out) {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.85) rotate(var(--rot, 0deg));
   }
 </style>
