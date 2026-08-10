@@ -7,6 +7,6 @@ export default defineConfig({
   // Update these two once you know your GitHub Pages repo name,
   // same pattern your old project used.
   site: 'https://yourusername.github.io',
-  base: '/your-repo-name/',
+  base: '/sasha-portfolio/',
   integrations: [react()],
 });
