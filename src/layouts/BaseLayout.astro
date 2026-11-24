@@ -24,5 +24,19 @@ const { pageTitle } = Astro.props;
       <slot />
     </main>
     <Footer />
+    <script>
+      import Lenis from "lenis";
+      import "lenis/dist/lenis.css";
+
+      // Smooth, eased scrolling for wheel and trackpad. Anchor links
+      // (about / works / contact) glide too. Lenis switches itself off
+      // for people who ask their system for reduced motion.
+      new Lenis({
+        lerp: 0.09,
+        wheelMultiplier: 1,
+        anchors: true,
+        autoRaf: true,
+      });
+    </script>
   </body>
 </html>
