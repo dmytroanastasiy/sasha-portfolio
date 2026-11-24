@@ -1,5 +1,6 @@
 ---
 import type { ImageMetadata } from 'astro';
+import { getImage } from 'astro:assets';
 
 // Dynamically import all images from src/assets/ at build time
 const globImages = import.meta.glob<{ default: ImageMetadata }>(
@@ -52,11 +53,15 @@ const works = [
   },
 ];
 
-// Helper function to resolve the bundled asset URL
-function getImageUrl(imageName: string) {
-  const assetPath = `/src/assets/${imageName}`;
-  return globImages[assetPath] ? globImages[assetPath].default.src : '';
+// Cursor preview shows at 180px wide: use a small webp, not the original
+async function getImageUrl(imageName: string) {
+  const asset = globImages[`/src/assets/${imageName}`];
+  if (!asset) return '';
+  const small = await getImage({ src: asset.default, width: 400, format: 'webp', quality: 75 });
+  return small.src;
 }
+
+const previews = await Promise.all(works.map((item) => getImageUrl(item.imageName)));
 ---
 
 <section class="works" id="works">
@@ -67,11 +72,11 @@ function getImageUrl(imageName: string) {
 
   <div class="works-list">
     {
-      works.map((item) => (
+      works.map((item, i) => (
         <a 
           href={`${import.meta.env.BASE_URL}work/${item.slug}`} 
           class="work-row"
-          data-preview={getImageUrl(item.imageName)}
+          data-preview={previews[i]}
         >
           <div class="work-left">
             <h3 class="work-title">{item.title}</h3>
@@ -119,10 +124,16 @@ function getImageUrl(imageName: string) {
 
     if (!preview || !previewImg) return;
 
-    window.addEventListener('mousemove', (e) => {
-      preview.style.left = `${e.clientX}px`;
-      preview.style.top = `${e.clientY}px`;
+    // Load the previews ahead of time so hovering a row shows its image at once
+    workRows.forEach((row) => {
+      const src = row.getAttribute('data-preview');
+      if (src) new Image().src = src;
     });
+
+    // `translate` moves it without re-laying out the page
+    window.addEventListener('mousemove', (e) => {
+      preview.style.translate = `${e.clientX}px ${e.clientY}px`;
+    }, { passive: true });
 
     workRows.forEach((row) => {
       row.addEventListener('mouseenter', () => {

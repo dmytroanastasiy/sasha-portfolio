@@ -1,7 +1,8 @@
 * {
   box-sizing: border-box;
 }
-html {
+/* Lenis handles smooth scrolling; native smooth would fight it */
+html:not(.lenis) {
   scroll-behavior: smooth;
 }
 body {

@@ -6,12 +6,15 @@ const socials = [
   { label: "linkedin", href: "https://www.linkedin.com/in/aleksandra-%C5%A1aronova-8b60b826a/" },
   { label: "behance", href: "https://www.behance.net/aleksansaronov" },
 ];
+
+// Heading lines, split into letters so they can run from the cursor
+const headingLines = ["is it a", "match?"];
 ---
 
 <footer class="cta-footer" id="contact">
   <div class="cta-main">
     <div class="cta-heading-group">
-      <h2 class="cta-heading">is it a<br />match?</h2>
+      <h2 class="cta-heading" id="cta-heading" aria-label={headingLines.join(" ")}>{headingLines.map((line, n) => (<Fragment>{n > 0 && <br />}{[...line].map((char) => char === " " ? " " : <span class="fluid-letter" aria-hidden="true">{char}</span>)}</Fragment>))}</h2>
       <p class="cta-subheading">Let's build something new together.</p>
     </div>
 
@@ -44,6 +47,14 @@ const socials = [
   </div>
 </footer>
 
+<script>
+  import { fluidLetters } from "../scripts/fluid-letters";
+
+  // Same fluid hover as the hero title
+  const heading = document.getElementById("cta-heading");
+  if (heading) fluidLetters(heading, { push: 0.4, reach: 0.9, reachY: 0.55 });
+</script>
+
 <style>
   .cta-footer {
     padding: clamp(3rem, 8vw, 6rem) clamp(1.25rem, 5vw, 4rem);
@@ -66,6 +77,12 @@ const socials = [
     margin: 0 0 1.5rem;
     font-size: clamp(4rem, 2.75rem + 5vw, 7.75rem);
       letter-spacing: clamp(0.1em, 4vw, 3em);
+  }
+
+  .cta-heading :global(.fluid-letter) {
+    display: inline-block;
+    transform-origin: 50% 80%;
+    will-change: transform;
   }
 
   .cta-subheading {
